@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+#cam {
+  position: fixed;
+  width: 280px;
+  height: 220px;
+  top: 20px;
+  right: 20px;
+  border-radius: 12px;
+  opacity: 0.3;
+}
+
+#scene {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
