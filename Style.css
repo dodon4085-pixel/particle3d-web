@@ -1,22 +1,16 @@
 body {
   margin: 0;
-  padding: 0;
   overflow: hidden;
   background: #000;
 }
-
-#cam {
-  position: fixed;
-  width: 280px;
-  height: 220px;
-  top: 20px;
-  right: 20px;
-  border-radius: 12px;
-  opacity: 0.3;
+#loading {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  color: #0ff;
+  font-family: monospace;
+  font-size: 20px;
 }
-
-#scene {
-  width: 100vw;
-  height: 100vh;
+canvas {
   display: block;
 }
