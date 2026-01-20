@@ -1,22 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hand Tracking 3D Control</title>
-  <link rel="stylesheet" href="style.css">
-
-  <!-- MediaPipe Hands -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hand-Controlled Sci-Fi Humanoid</title>
+<style>
+  body { margin:0; overflow:hidden; background:#000; }
+  #webcam { position:absolute; top:10px; left:10px; width:200px; border:2px solid #0ff; border-radius:8px; display:none; }
+</style>
 </head>
 <body>
 
-  <video id="cam" autoplay playsinline></video>
-  <canvas id="scene"></canvas>
+<video id="webcam" autoplay playsinline></video>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
-  <script src="hand.js"></script>
-  <script src="script.js"></script>
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+
+import { initHands, getLandmarks } from './hand.js';
+import { classifyGesture } from './gesture.js';
+import { smooth } from './filter.js';
+
+// THREE.js scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0,1.5,3);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+document.body.appendChild(renderer.domElement);
+
+// Controls (optional, debug)
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Lights
+const light = new THREE.PointLight(0x00ffff, 2);
+light.position.set(5,5,5);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x0ff,0.3));
+
+// Humanoid model
+let humanoid;
+const loader = new GLTFLoader();
+loader.load('model.glb', (gltf)=>{
+  humanoid = gltf.scene;
+  humanoid.traverse(child=>{
+    if(child.isMesh){
+      child.material = new THREE.MeshStandardMaterial({
+        color:0x0ff, wireframe:true, emissive:0x0ff, emissiveIntensity:0.6
+      });
+    }
+  });
+  scene.add(humanoid);
+});
+
+// Window resize
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Hand landmarks
+await initHands();
+
+// Animation loop
+const clock = new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+
+  const landmarks = getLandmarks();
+  if(landmarks && humanoid){
+    const gesture = classifyGesture(landmarks);
+
+    // Map hand to humanoid
+    const [x,y,z] = smooth(landmarks[0].x, landmarks[0].y, landmarks[0].z); // wrist
+    humanoid.position.set((x-0.5)*4, (1-y)*3, -z*4);
+    humanoid.rotation.y = (landmarks[0].x-0.5)*Math.PI; // simple yaw
+    humanoid.scale.setScalar(gesture.scale || 1);
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+
 </body>
 </html>
